@@ -1466,6 +1466,7 @@ body.no-scroll {
     /* Reposition Text Overlays outside of the laptop canvas frame */
     .scroll-text-section {
         width: calc(100% - 40px) !important;
+        left: 20px !important;
         max-width: 580px !important;
         padding: 20px 30px !important;
         background: none !important;
@@ -1473,6 +1474,17 @@ body.no-scroll {
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
         box-shadow: none !important;
+    }
+
+    .scroll-text-section h1 {
+        font-size: 2.0rem !important;
+        letter-spacing: -1px !important;
+        margin-bottom: 8px !important;
+    }
+
+    .scroll-text-section p {
+        font-size: 0.95rem !important;
+        line-height: 1.4 !important;
     }
     
     /* Top Black Space Elements (Phase 1, 2, 3) */
