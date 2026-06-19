@@ -1525,12 +1525,12 @@ body.no-scroll {
     }
     
     #text-phase-4 .split-col-left {
-        top: 50px !important;
+        top: 110px !important;
         bottom: auto !important;
     }
     
     #text-phase-4 .split-col-right {
-        bottom: 50px !important;
+        bottom: 110px !important;
         top: auto !important;
     }
     
