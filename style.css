@@ -1468,11 +1468,11 @@ body.no-scroll {
         width: calc(100% - 40px) !important;
         max-width: 580px !important;
         padding: 20px 30px !important;
-        background: rgba(19, 19, 19, 0.45);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: none !important;
+        border: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        box-shadow: none !important;
     }
     
     /* Top Black Space Elements (Phase 1, 2, 3) */
@@ -1502,23 +1502,23 @@ body.no-scroll {
         width: calc(100% - 40px) !important;
         max-width: 580px !important;
         padding: 20px 30px !important;
-        background: rgba(19, 19, 19, 0.45) !important;
-        backdrop-filter: blur(8px) !important;
-        -webkit-backdrop-filter: blur(8px) !important;
-        border-radius: 12px !important;
-        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        background: none !important;
+        border: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        box-shadow: none !important;
         align-items: center !important;
         text-align: center !important;
         left: 20px !important;
     }
     
     #text-phase-4 .split-col-left {
-        top: 90px !important;
+        top: 50px !important;
         bottom: auto !important;
     }
     
     #text-phase-4 .split-col-right {
-        bottom: 90px !important;
+        bottom: 50px !important;
         top: auto !important;
     }
     
@@ -1534,6 +1534,35 @@ body.no-scroll {
         padding: 0 !important;
         max-width: 320px !important;
         box-shadow: none !important;
+    }
+
+    #text-phase-5.scrolling-push {
+        transform: translate(-50%, calc(-50% + var(--push-y, 0px))) !important;
+    }
+
+    /* Smaller and wider about us & about me sections on mobile */
+    .about-content, .about-me-content {
+        padding: 40px 20px !important;
+    }
+    .about-glass-card {
+        padding: 24px !important;
+        gap: 14px !important;
+        border-radius: 16px !important;
+    }
+    .about-body {
+        font-size: 17px !important;
+        line-height: 1.6 !important;
+    }
+    .about-para {
+        font-size: 12px !important;
+        line-height: 1.6 !important;
+    }
+    .about-stats {
+        padding-top: 20px !important;
+        margin-top: 10px !important;
+    }
+    #about-me .about-me-image {
+        order: -1 !important;
     }
 }
 

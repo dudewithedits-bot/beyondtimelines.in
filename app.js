@@ -307,10 +307,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (aboutRect.top < naturalBottom) {
                     const translateY = aboutRect.top - naturalBottom;
                     textPhase5.classList.add('scrolling-push');
-                    textPhase5.style.transform = `translateY(${translateY}px)`;
+                    textPhase5.style.setProperty('--push-y', `${translateY}px`);
                 } else {
                     textPhase5.classList.remove('scrolling-push');
-                    textPhase5.style.transform = '';
+                    textPhase5.style.removeProperty('--push-y');
                 }
             }
         } else if (aboutRect.bottom <= 0) {
@@ -320,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (canvas) canvas.style.opacity = '0';
             if (textPhase5) {
                 textPhase5.classList.remove('scrolling-push');
-                textPhase5.style.transform = '';
+                textPhase5.style.removeProperty('--push-y');
             }
         } else {
             // Still in the animation sequence
@@ -334,7 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (textPhase5) {
                 textPhase5.classList.remove('scrolling-push');
                 textPhase5.classList.remove('slide-up-outro');
-                textPhase5.style.transform = '';
+                textPhase5.style.removeProperty('--push-y');
             }
         }
     }
