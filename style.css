@@ -1253,7 +1253,8 @@ footer {
     transform: scale(1);
 }
 
-.video-modal-content video {
+.video-modal-content video,
+.video-modal-content iframe {
     width: 100%;
     height: 100%;
     object-fit: contain;

@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
             item.setAttribute('data-video', CONFIG.cdnBaseUrl + currentVideo);
         }
     });
-    
+
     // Also update static images to point to the production CDN
     const liveProductionUrl = 'https://bt-dx4c.vercel.app/';
     document.querySelectorAll('img, .portfolio-thumb').forEach(el => {
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loaderBar = document.querySelector('.loader-bar');
     const loaderText = document.querySelector('.loader-text');
     const scrollIndicator = document.querySelector('.scroll-indicator');
-    
+
     // Total number of frames (000 to 190 inclusive = 191 frames)
     const startFrame = 0;
     const endFrame = 190;
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function onPreloadComplete() {
         // Fade out preloader
         preloader.classList.add('loaded');
-        
+
         // Initial setup and draw
         resizeCanvas();
         renderFrame(0);
@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateBokehPosition();
         updateAboutMeBokehPosition();
         updateHeroStickyTransition();
-        
+
         // Bind scroll and resize events
         window.addEventListener('scroll', () => {
             handleScroll();
@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.width = window.innerWidth * dpr;
         canvas.height = window.innerHeight * dpr;
         ctx.scale(dpr, dpr);
-        
+
         // Redraw current frame
         const scrollFraction = getScrollFraction();
         const frameIndex = Math.min(
@@ -158,19 +158,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const canvasWidth = window.innerWidth;
         const canvasHeight = window.innerHeight;
-        
+
         // Clear screen
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-        
+
         // Center-align logic (Contain style so the entire laptop frame is visible)
         const imgWidth = img.naturalWidth || 1920;
         const imgHeight = img.naturalHeight || 1080;
-        
+
         const imgRatio = imgWidth / imgHeight;
         const canvasRatio = canvasWidth / canvasHeight;
-        
+
         let drawWidth, drawHeight, x, y;
-        
+
         if (canvasRatio > imgRatio) {
             // Screen is wider than image aspect ratio: scale by height
             drawHeight = canvasHeight;
@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 y = (canvasHeight - drawHeight) / 2;
             }
         }
-        
+
         ctx.drawImage(img, x, y, drawWidth, drawHeight);
     }
 
@@ -211,14 +211,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!ticking) {
             requestAnimationFrame(() => {
                 const scrollFraction = getScrollFraction();
-                
+
                 // 1. Render active animation frame
                 const frameIndex = Math.min(
                     totalFrames - 1,
                     Math.floor(scrollFraction * totalFrames)
                 );
                 renderFrame(frameIndex);
-                
+
                 // 2. Control visibility of Text overlays
                 updateTextOverlays(scrollFraction);
 
@@ -231,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     scrollIndicator.classList.remove('hidden');
                 }
-                
+
                 ticking = false;
             });
             ticking = true;
@@ -303,7 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (textPhase5) {
                 const textHeight = textPhase5.offsetHeight;
                 const naturalBottom = (viewportHeight + textHeight) / 2;
-                
+
                 if (aboutRect.top < naturalBottom) {
                     const translateY = aboutRect.top - naturalBottom;
                     textPhase5.classList.add('scrolling-push');
@@ -326,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Still in the animation sequence
             stickyContainer.style.visibility = 'visible';
             stickyContainer.style.opacity = '1';
-            
+
             if (canvas) {
                 canvas.style.opacity = '1';
                 canvas.classList.remove('no-blur');
@@ -342,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Dynamic Navbar Scroll Handler
     const nav = document.getElementById('nav');
     const scrollContainer = document.getElementById('scroll-container');
-    
+
     function updateNavbar() {
         let scrollThreshold;
         if (isMobile) {
@@ -368,26 +368,26 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateBokehPosition() {
         if (isMouseOverAbout) return; // Ignore scroll-based positioning if mouse hover is active
         if (!aboutSection || !bokeh1 || !bokeh2 || !bokeh3) return;
-        
+
         const rect = aboutSection.getBoundingClientRect();
         const viewportHeight = window.innerHeight;
-        
+
         // When #about is visible in the viewport, translate bokeh lights based on scroll progress
         if (rect.top < viewportHeight && rect.bottom > 0) {
             const enterPoint = rect.top - viewportHeight;
             const scrollDistance = rect.height + viewportHeight;
             const progress = Math.max(0, Math.min(1, -enterPoint / (scrollDistance || 1)));
-            
+
             // Map scroll progress to custom horizontal and vertical coordinates
             const b1X = progress * 160 - 60;   // Moves from -60px to 100px
             const b1Y = progress * 100 - 50;   // Moves from -50px to 50px
-            
+
             const b2X = (1 - progress) * -140 + 40; // Moves in opposite direction
             const b2Y = progress * -90 - 20;
-            
+
             const b3X = progress * -180 + 30;  // Moves dynamically
             const b3Y = (1 - progress) * 140 - 70;
-            
+
             bokeh1.style.transform = `translate(${b1X}px, ${b1Y}px)`;
             bokeh2.style.transform = `translate(${b2X}px, ${b2Y}px)`;
             bokeh3.style.transform = `translate(${b3X}px, ${b3Y}px)`;
@@ -400,22 +400,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const rect = aboutContent.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
-            
+
             // Centering offset calculation for each light size (feathered offsets for visual depth)
             const target1X = x - 150;
             const target1Y = y - 150;
-            
+
             const target2X = x - 130 + 60;
             const target2Y = y - 130 - 60;
-            
+
             const target3X = x - 160 - 80;
             const target3Y = y - 160 + 80;
-            
+
             bokeh1.style.transform = `translate(${target1X}px, ${target1Y}px)`;
             bokeh2.style.transform = `translate(${target2X}px, ${target2Y}px)`;
             bokeh3.style.transform = `translate(${target3X}px, ${target3Y}px)`;
         });
-        
+
         aboutContent.addEventListener('mouseleave', () => {
             isMouseOverAbout = false;
             updateBokehPosition(); // Slide back to scroll position smoothly
@@ -432,26 +432,26 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateAboutMeBokehPosition() {
         if (isMouseOverAboutMe) return; // Ignore scroll-based positioning if mouse hover is active
         if (!aboutMeSection || !bokehMe1 || !bokehMe2 || !bokehMe3) return;
-        
+
         const rect = aboutMeSection.getBoundingClientRect();
         const viewportHeight = window.innerHeight;
-        
+
         // When #about-me is visible in the viewport, translate bokeh lights based on scroll progress
         if (rect.top < viewportHeight && rect.bottom > 0) {
             const enterPoint = rect.top - viewportHeight;
             const scrollDistance = rect.height + viewportHeight;
             const progress = Math.max(0, Math.min(1, -enterPoint / (scrollDistance || 1)));
-            
+
             // Map scroll progress to custom horizontal and vertical coordinates
-            const b1X = progress * 160 - 60;   
-            const b1Y = progress * 100 - 50;   
-            
-            const b2X = (1 - progress) * -140 + 40; 
+            const b1X = progress * 160 - 60;
+            const b1Y = progress * 100 - 50;
+
+            const b2X = (1 - progress) * -140 + 40;
             const b2Y = progress * -90 - 20;
-            
-            const b3X = progress * -180 + 30;  
+
+            const b3X = progress * -180 + 30;
             const b3Y = (1 - progress) * 140 - 70;
-            
+
             bokehMe1.style.transform = `translate(${b1X}px, ${b1Y}px)`;
             bokehMe2.style.transform = `translate(${b2X}px, ${b2Y}px)`;
             bokehMe3.style.transform = `translate(${b3X}px, ${b3Y}px)`;
@@ -464,21 +464,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const rect = aboutMeContent.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
-            
+
             const target1X = x - 150;
             const target1Y = y - 150;
-            
+
             const target2X = x - 130 + 60;
             const target2Y = y - 130 - 60;
-            
+
             const target3X = x - 160 - 80;
             const target3Y = y - 160 + 80;
-            
+
             bokehMe1.style.transform = `translate(${target1X}px, ${target1Y}px)`;
             bokehMe2.style.transform = `translate(${target2X}px, ${target2Y}px)`;
             bokehMe3.style.transform = `translate(${target3X}px, ${target3Y}px)`;
         });
-        
+
         aboutMeContent.addEventListener('mouseleave', () => {
             isMouseOverAboutMe = false;
             updateAboutMeBokehPosition(); // Slide back to scroll position smoothly
@@ -504,7 +504,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function filterPortfolio(category) {
         // Find currently visible items
         const visibleItems = Array.from(portfolioItems).filter(item => !item.classList.contains('hidden'));
-        
+
         // Fade and slide out active items
         visibleItems.forEach(item => {
             item.style.opacity = '0';
@@ -534,10 +534,10 @@ document.addEventListener('DOMContentLoaded', () => {
     bottomFilterBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             if (btn.classList.contains('active')) return;
-            
+
             bottomFilterBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            
+
             const filterValue = btn.getAttribute('data-filter');
             filterPortfolio(filterValue);
         });
@@ -546,6 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Video Lightbox Modal Control
     const videoModal = document.getElementById('video-modal');
     const modalVideo = document.getElementById('modal-video');
+    const modalIframe = document.getElementById('modal-iframe');
     const modalClose = document.querySelector('.video-modal-close');
     const modalOverlay = document.querySelector('.video-modal-overlay');
 
@@ -553,11 +554,25 @@ document.addEventListener('DOMContentLoaded', () => {
         item.addEventListener('click', () => {
             const videoSrc = item.getAttribute('data-video');
             if (videoSrc) {
-                modalVideo.src = videoSrc;
+                if (videoSrc.includes('vimeo.com') || videoSrc.includes('youtube.com') || videoSrc.includes('youtu.be')) {
+                    modalVideo.style.display = 'none';
+                    if (modalIframe) {
+                        modalIframe.style.display = 'block';
+                        let embedUrl = videoSrc;
+                        if (embedUrl.includes('vimeo.com') && !embedUrl.includes('autoplay=')) {
+                            embedUrl += (embedUrl.includes('?') ? '&' : '?') + 'autoplay=1';
+                        }
+                        modalIframe.src = embedUrl;
+                    }
+                } else {
+                    if (modalIframe) modalIframe.style.display = 'none';
+                    modalVideo.style.display = 'block';
+                    modalVideo.src = videoSrc;
+                    modalVideo.play().catch(err => {
+                        console.log("Auto-play blocked, wait for user interaction: ", err);
+                    });
+                }
                 videoModal.classList.add('active');
-                modalVideo.play().catch(err => {
-                    console.log("Auto-play blocked, wait for user interaction: ", err);
-                });
             }
         });
     });
@@ -569,6 +584,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (modalVideo) {
                 modalVideo.pause();
                 modalVideo.src = '';
+            }
+            if (modalIframe) {
+                modalIframe.src = '';
             }
         }, 400);
     }
