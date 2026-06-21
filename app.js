@@ -71,8 +71,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let isDesktopCriticalDone = false;
     let desktopCriticalCount = 0;
 
-    // Mobile Image Sequence Config (229 frames)
-    const totalFramesMobile = 229;
+    // Mobile Image Sequence Config (177 frames)
+    const totalFramesMobile = 177;
     const imagesMobile = new Array(totalFramesMobile).fill(null);
     const criticalFramesMobile = 15;
     let isMobileCriticalDone = false;
