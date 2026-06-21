@@ -64,16 +64,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const loaderText = document.querySelector('.loader-text');
     const scrollIndicator = document.querySelector('.scroll-indicator');
 
-    // Total number of frames (000 to 190 inclusive = 191 frames)
-    const startFrame = 0;
-    const endFrame = 190;
-    const totalFrames = endFrame - startFrame + 1;
+    // Desktop Image Sequence Config (191 frames)
+    const totalFramesDesktop = 191;
+    const imagesDesktop = new Array(totalFramesDesktop).fill(null);
+    const criticalFramesDesktop = 15;
+    let isDesktopCriticalDone = false;
+    let desktopCriticalCount = 0;
 
-    // Progressive Loading Setup: Pre-allocate images array with nulls
-    const images = new Array(totalFrames).fill(null);
-    let criticalLoadedCount = 0;
-    const CRITICAL_FRAMES_COUNT = 15; // Fast start with first 15 frames (~1.5MB)
-    let isCriticalLoadDone = false;
+    // Mobile Image Sequence Config (229 frames)
+    const totalFramesMobile = 229;
+    const imagesMobile = new Array(totalFramesMobile).fill(null);
+    const criticalFramesMobile = 15;
+    let isMobileCriticalDone = false;
+    let mobileCriticalCount = 0;
 
     // Smooth Scrolling LERP Easing variables
     let currentScrollFraction = 0;
@@ -89,62 +92,103 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'text-phase-5', start: 0.85, end: 1.0 }
     ];
 
-    // Helper to format frame filename
-    function getFramePath(index) {
-        const frameNum = String(startFrame + index).padStart(3, '0');
-        return `SCROLL ANIMATION/teaser${frameNum}.jpg`;
-    }
-
-    // Preload critical images first, then background load the rest
-    function preloadImages() {
-        for (let i = 0; i < CRITICAL_FRAMES_COUNT; i++) {
-            loadFrame(i, true);
+    // Helper to format frame filename based on device viewport width
+    function getFramePath(index, isMobileViewport) {
+        if (isMobileViewport) {
+            const frameNum = String(index + 1).padStart(3, '0'); // ezgif-frame-001.jpg to ezgif-frame-229.jpg
+            return `MOBILE ANIMATION/ezgif-frame-${frameNum}.jpg`;
+        } else {
+            const frameNum = String(index).padStart(3, '0'); // teaser000.jpg to teaser190.jpg
+            return `SCROLL ANIMATION/teaser${frameNum}.jpg`;
         }
     }
 
-    function loadFrame(index, isCritical = false) {
-        const img = new Image();
-        img.src = getFramePath(index);
-        img.onload = () => {
-            images[index] = img;
-            if (isCritical) {
-                criticalLoadedCount++;
-                const progress = Math.round((criticalLoadedCount / CRITICAL_FRAMES_COUNT) * 100);
-                loaderBar.style.width = `${progress}%`;
-                loaderText.textContent = `LOADING PORTFOLIO... ${progress}%`;
+    // Preload critical images first, depending on initial viewport size
+    function preloadImages() {
+        const activeMobile = window.innerWidth < 768;
+        if (activeMobile) {
+            for (let i = 0; i < criticalFramesMobile; i++) {
+                loadFrame(i, true, true);
+            }
+        } else {
+            for (let i = 0; i < criticalFramesDesktop; i++) {
+                loadFrame(i, false, true);
+            }
+        }
+    }
 
-                if (criticalLoadedCount === CRITICAL_FRAMES_COUNT && !isCriticalLoadDone) {
-                    isCriticalLoadDone = true;
-                    onPreloadComplete();
-                    loadRemainingFrames();
+    function loadFrame(index, isMobileViewport, isCritical = false) {
+        const imagesArray = isMobileViewport ? imagesMobile : imagesDesktop;
+        const criticalCountMax = isMobileViewport ? criticalFramesMobile : criticalFramesDesktop;
+        
+        if (imagesArray[index] && imagesArray[index].complete) return;
+
+        const img = new Image();
+        img.src = getFramePath(index, isMobileViewport);
+        img.onload = () => {
+            imagesArray[index] = img;
+            if (isCritical) {
+                if (isMobileViewport) {
+                    mobileCriticalCount++;
+                    const progress = Math.round((mobileCriticalCount / criticalFramesMobile) * 100);
+                    loaderBar.style.width = `${progress}%`;
+                    loaderText.textContent = `LOADING PORTFOLIO... ${progress}%`;
+                    if (mobileCriticalCount === criticalFramesMobile && !isMobileCriticalDone) {
+                        isMobileCriticalDone = true;
+                        onPreloadComplete();
+                        loadRemainingFrames(true);
+                    }
+                } else {
+                    desktopCriticalCount++;
+                    const progress = Math.round((desktopCriticalCount / criticalFramesDesktop) * 100);
+                    loaderBar.style.width = `${progress}%`;
+                    loaderText.textContent = `LOADING PORTFOLIO... ${progress}%`;
+                    if (desktopCriticalCount === criticalFramesDesktop && !isDesktopCriticalDone) {
+                        isDesktopCriticalDone = true;
+                        onPreloadComplete();
+                        loadRemainingFrames(false);
+                    }
                 }
             }
         };
         img.onerror = () => {
-            console.error(`Failed to load critical frame: ${index}`);
+            console.error(`Failed to load frame: index ${index}, mobile: ${isMobileViewport}`);
             if (isCritical) {
-                criticalLoadedCount++;
-                if (criticalLoadedCount === CRITICAL_FRAMES_COUNT && !isCriticalLoadDone) {
-                    isCriticalLoadDone = true;
-                    onPreloadComplete();
-                    loadRemainingFrames();
+                if (isMobileViewport) {
+                    mobileCriticalCount++;
+                    if (mobileCriticalCount === criticalFramesMobile && !isMobileCriticalDone) {
+                        isMobileCriticalDone = true;
+                        onPreloadComplete();
+                        loadRemainingFrames(true);
+                    }
+                } else {
+                    desktopCriticalCount++;
+                    if (desktopCriticalCount === criticalFramesDesktop && !isDesktopCriticalDone) {
+                        isDesktopCriticalDone = true;
+                        onPreloadComplete();
+                        loadRemainingFrames(false);
+                    }
                 }
             }
         };
     }
 
-    function loadRemainingFrames() {
-        let currentIndex = CRITICAL_FRAMES_COUNT;
+    function loadRemainingFrames(isMobileViewport) {
+        const total = isMobileViewport ? totalFramesMobile : totalFramesDesktop;
+        const criticalCount = isMobileViewport ? criticalFramesMobile : criticalFramesDesktop;
+        const imagesArray = isMobileViewport ? imagesMobile : imagesDesktop;
+        
+        let currentIndex = criticalCount;
 
         function loadNextChunk() {
             const chunkSize = 5;
-            const end = Math.min(totalFrames, currentIndex + chunkSize);
+            const end = Math.min(total, currentIndex + chunkSize);
             for (let i = currentIndex; i < end; i++) {
                 const img = new Image();
-                img.src = getFramePath(i);
+                img.src = getFramePath(i, isMobileViewport);
                 img.onload = ((idx, imageEl) => {
                     return () => {
-                        images[idx] = imageEl;
+                        imagesArray[idx] = imageEl;
                     };
                 })(i, img);
                 img.onerror = ((idx) => {
@@ -154,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 })(i);
             }
             currentIndex = end;
-            if (currentIndex < totalFrames) {
+            if (currentIndex < total) {
                 setTimeout(loadNextChunk, 50);
             }
         }
@@ -163,17 +207,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Helper to find the nearest loaded frame
-    function getClosestLoadedImage(index) {
-        if (images[index] && images[index].complete) {
-            return images[index];
+    function getClosestLoadedImage(index, isMobileViewport) {
+        const imagesArray = isMobileViewport ? imagesMobile : imagesDesktop;
+        const total = isMobileViewport ? totalFramesMobile : totalFramesDesktop;
+        
+        if (imagesArray[index] && imagesArray[index].complete) {
+            return imagesArray[index];
         }
         let step = 1;
-        while (index - step >= 0 || index + step < totalFrames) {
-            if (index - step >= 0 && images[index - step] && images[index - step].complete) {
-                return images[index - step];
+        while (index - step >= 0 || index + step < total) {
+            if (index - step >= 0 && imagesArray[index - step] && imagesArray[index - step].complete) {
+                return imagesArray[index - step];
             }
-            if (index + step < totalFrames && images[index + step] && images[index + step].complete) {
-                return images[index + step];
+            if (index + step < total && imagesArray[index + step] && imagesArray[index + step].complete) {
+                return imagesArray[index + step];
             }
             step++;
         }
@@ -190,9 +237,11 @@ document.addEventListener('DOMContentLoaded', () => {
         targetScrollFraction = getScrollFraction();
         currentScrollFraction = targetScrollFraction;
 
+        const activeMobile = window.innerWidth < 768;
+        const total = activeMobile ? totalFramesMobile : totalFramesDesktop;
         const frameIndex = Math.min(
-            totalFrames - 1,
-            Math.floor(currentScrollFraction * totalFrames)
+            total - 1,
+            Math.floor(currentScrollFraction * total)
         );
         renderFrame(frameIndex);
 
@@ -213,6 +262,29 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('resize', () => {
             resizeCanvas();
             targetScrollFraction = getScrollFraction();
+
+            // Lazy preload images if resizing across thresholds
+            const activeMobile = window.innerWidth < 768;
+            if (activeMobile) {
+                if (!isMobileCriticalDone) {
+                    isMobileCriticalDone = true;
+                    // Trigger preload for mobile frames
+                    for (let i = 0; i < criticalFramesMobile; i++) {
+                        loadFrame(i, true, false);
+                    }
+                    loadRemainingFrames(true);
+                }
+            } else {
+                if (!isDesktopCriticalDone) {
+                    isDesktopCriticalDone = true;
+                    // Trigger preload for desktop frames
+                    for (let i = 0; i < criticalFramesDesktop; i++) {
+                        loadFrame(i, false, false);
+                    }
+                    loadRemainingFrames(false);
+                }
+            }
+
             startAnimationLoop();
         });
     }
@@ -226,16 +298,19 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.scale(dpr, dpr);
 
         // Redraw current frame
+        const activeMobile = window.innerWidth < 768;
+        const total = activeMobile ? totalFramesMobile : totalFramesDesktop;
         const frameIndex = Math.min(
-            totalFrames - 1,
-            Math.floor(currentScrollFraction * totalFrames)
+            total - 1,
+            Math.floor(currentScrollFraction * total)
         );
         renderFrame(frameIndex);
     }
 
     // Draw the image onto canvas using cover/contain-like math
     function renderFrame(index) {
-        const img = getClosestLoadedImage(index);
+        const activeMobile = window.innerWidth < 768;
+        const img = getClosestLoadedImage(index, activeMobile);
         if (!img || !img.complete) return;
 
         const canvasWidth = window.innerWidth;
@@ -245,8 +320,8 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
         // Center-align logic (Contain style so the entire laptop frame is visible)
-        const imgWidth = img.naturalWidth || 1920;
-        const imgHeight = img.naturalHeight || 1080;
+        const imgWidth = img.naturalWidth || (activeMobile ? 640 : 1920);
+        const imgHeight = img.naturalHeight || (activeMobile ? 1138 : 1080);
 
         const imgRatio = imgWidth / imgHeight;
         const canvasRatio = canvasWidth / canvasHeight;
@@ -260,20 +335,11 @@ document.addEventListener('DOMContentLoaded', () => {
             x = (canvasWidth - drawWidth) / 2;
             y = 0;
         } else {
-            // Screen is taller than image aspect ratio (portrait viewports / mobile)
-            if (isMobile) {
-                // Zoom in slightly on mobile to make the black space shorter
-                drawWidth = canvasWidth * 1.6;
-                drawHeight = drawWidth / imgRatio;
-                x = (canvasWidth - drawWidth) / 2;
-                y = (canvasHeight - drawHeight) / 2;
-            } else {
-                // Standard contain scaling
-                drawWidth = canvasWidth;
-                drawHeight = canvasWidth / imgRatio;
-                x = 0;
-                y = (canvasHeight - drawHeight) / 2;
-            }
+            // Screen is taller than image aspect ratio
+            drawWidth = canvasWidth;
+            drawHeight = canvasWidth / imgRatio;
+            x = 0;
+            y = (canvasHeight - drawHeight) / 2;
         }
 
         ctx.drawImage(img, x, y, drawWidth, drawHeight);
@@ -307,9 +373,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // 1. Render active animation frame
+        const activeMobile = window.innerWidth < 768;
+        const total = activeMobile ? totalFramesMobile : totalFramesDesktop;
         const frameIndex = Math.min(
-            totalFrames - 1,
-            Math.floor(currentScrollFraction * totalFrames)
+            total - 1,
+            Math.floor(currentScrollFraction * total)
         );
         renderFrame(frameIndex);
 
