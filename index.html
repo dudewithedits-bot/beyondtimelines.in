@@ -12,6 +12,11 @@
     <meta name="keywords"
         content="Beyond Timelines, Wedding Video Editor, Wedding Film Editing, Cinematic Weddings, Love Stories, Video Editing Portfolio">
 
+    <!-- Preconnect and Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;500;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet">
+
     <!-- Custom Style Sheet -->
     <link rel="stylesheet" href="style.css?v=4">
 </head>
@@ -128,7 +133,7 @@
     <!-- ABOUT -->
     <section id="about">
         <div class="about-image">
-            <video class="about-video" src="A&amp;P WEDDING REEL.mp4" autoplay loop muted playsinline></video>
+            <video class="about-video" data-src="A&amp;P WEDDING REEL.mp4" loop muted playsinline></video>
         </div>
         <div class="about-content">
             <div class="bokeh-container">
@@ -221,7 +226,7 @@
         
         <!-- Full-Width Featured Cinematic Video Section -->
         <div class="featured-video-container fade-up fade-up-delay-1">
-            <video id="featured-portfolio-video" src="banner BHAWNA &amp; ARCHIT WEDDING TEASER-.mp4" autoplay loop muted playsinline style="pointer-events: none;"></video>
+            <video id="featured-portfolio-video" data-src="banner BHAWNA &amp; ARCHIT WEDDING TEASER-.mp4" loop muted playsinline style="pointer-events: none;"></video>
             
             <!-- Bottom Black Transparent Gradient Overlay -->
             <div class="video-gradient-overlay">
@@ -477,7 +482,7 @@
     </div>
 
     <!-- Custom Script -->
-    <script src="app.js?v=4"></script>
+    <script src="app.js?v=4" defer></script>
 </body>
 
 </html>

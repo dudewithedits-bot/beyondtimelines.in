@@ -20,15 +20,45 @@ document.addEventListener('DOMContentLoaded', () => {
             const isLocalAPReel = decoded.includes('A&P WEDDING REEL.mp4');
             const isLocalBanner = decoded.includes('banner BHAWNA & ARCHIT WEDDING TEASER-.mp4');
             const isLocalTeaser = decoded.includes('teaser.mp4');
-            if (isLocalAPReel || isLocalBanner || isLocalTeaser) {
-                return; // Always load these locally (on localhost and when deployed to Vercel)
+            if (!isLocalAPReel && !isLocalBanner && !isLocalTeaser) {
+                video.src = CONFIG.cdnBaseUrl + currentSrc;
             }
-            video.src = CONFIG.cdnBaseUrl + currentSrc;
         }
         const currentDataSrc = video.getAttribute('data-src');
         if (currentDataSrc && !currentDataSrc.startsWith('http') && !currentDataSrc.startsWith('blob')) {
-            video.setAttribute('data-src', CONFIG.cdnBaseUrl + currentDataSrc);
+            const decoded = decodeURIComponent(currentDataSrc);
+            const isLocalAPReel = decoded.includes('A&P WEDDING REEL.mp4');
+            const isLocalBanner = decoded.includes('banner BHAWNA & ARCHIT WEDDING TEASER-.mp4');
+            const isLocalTeaser = decoded.includes('teaser.mp4');
+            if (!isLocalAPReel && !isLocalBanner && !isLocalTeaser) {
+                video.setAttribute('data-src', CONFIG.cdnBaseUrl + currentDataSrc);
+            }
         }
+    });
+
+    // IntersectionObserver to lazy load and play videos when visible
+    const lazyVideoObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            const video = entry.target;
+            if (entry.isIntersecting) {
+                const dataSrc = video.getAttribute('data-src');
+                if (dataSrc) {
+                    video.src = dataSrc;
+                    video.removeAttribute('data-src');
+                }
+                video.play().catch(err => {
+                    console.log("Lazy video play failed:", err);
+                });
+            } else {
+                if (video.src) {
+                    video.pause();
+                }
+            }
+        });
+    }, { rootMargin: '100px' });
+
+    document.querySelectorAll('video[data-src]').forEach(video => {
+        lazyVideoObserver.observe(video);
     });
 
     // Force CDN redirect for portfolio items
@@ -82,6 +112,52 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentScrollFraction = 0;
     let targetScrollFraction = 0;
     let isLoopRunning = false;
+
+    // Cached layout geometry to avoid forced reflows (layout thrashing)
+    let cachedScrollHeight = 0;
+    let cachedAboutTop = 0;
+    let cachedAboutHeight = 0;
+    let cachedAboutMeTop = 0;
+    let cachedAboutMeHeight = 0;
+    let cachedTextPhase5Height = 0;
+    let cachedAboutContentLeft = 0;
+    let cachedAboutContentTop = 0;
+    let cachedAboutMeContentLeft = 0;
+    let cachedAboutMeContentTop = 0;
+
+    function cacheGeometries() {
+        const scrollContainer = document.getElementById('scroll-container');
+        const aboutSection = document.getElementById('about');
+        const aboutMeSection = document.getElementById('about-me');
+        const textPhase5 = document.getElementById('text-phase-5');
+        const aboutContent = document.querySelector('.about-content');
+        const aboutMeContent = document.querySelector('.about-me-content');
+
+        if (scrollContainer) {
+            cachedScrollHeight = scrollContainer.scrollHeight;
+        }
+        if (aboutSection) {
+            cachedAboutTop = aboutSection.offsetTop;
+            cachedAboutHeight = aboutSection.offsetHeight;
+        }
+        if (aboutMeSection) {
+            cachedAboutMeTop = aboutMeSection.offsetTop;
+            cachedAboutMeHeight = aboutMeSection.offsetHeight;
+        }
+        if (textPhase5) {
+            cachedTextPhase5Height = textPhase5.offsetHeight;
+        }
+        if (aboutContent) {
+            const r = aboutContent.getBoundingClientRect();
+            cachedAboutContentLeft = r.left + window.scrollX;
+            cachedAboutContentTop = r.top + window.scrollY;
+        }
+        if (aboutMeContent) {
+            const r = aboutMeContent.getBoundingClientRect();
+            cachedAboutMeContentLeft = r.left + window.scrollX;
+            cachedAboutMeContentTop = r.top + window.scrollY;
+        }
+    }
 
     // Define scroll ranges for each text overlay section (from 0 to 1)
     const textPhases = [
@@ -232,6 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
         preloader.classList.add('loaded');
 
         // Initial setup and draw
+        cacheGeometries();
         resizeCanvas();
 
         targetScrollFraction = getScrollFraction();
@@ -260,6 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { passive: true });
 
         window.addEventListener('resize', () => {
+            cacheGeometries();
             resizeCanvas();
             targetScrollFraction = getScrollFraction();
 
@@ -347,8 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Calculate how far down the scroll container the user is (0 to 1)
     function getScrollFraction() {
-        const scrollContainer = document.getElementById('scroll-container');
-        const scrollHeight = scrollContainer.scrollHeight - window.innerHeight;
+        const scrollHeight = (cachedScrollHeight || 1) - window.innerHeight;
         const scrollTop = window.scrollY;
         return Math.max(0, Math.min(1, scrollTop / (scrollHeight || 1)));
     }
@@ -429,22 +506,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateHeroStickyTransition() {
         const stickyContainer = document.querySelector('.sticky-container');
-        const aboutSection = document.getElementById('about');
         const textPhase5 = document.getElementById('text-phase-5');
         const canvas = document.getElementById('animation-canvas');
-        if (!stickyContainer || !aboutSection) return;
+        if (!stickyContainer) return;
 
-        const aboutRect = aboutSection.getBoundingClientRect();
         const viewportHeight = window.innerHeight;
+        const scrollY = window.scrollY;
+
+        const aboutRectTop = cachedAboutTop - scrollY;
+        const aboutRectBottom = aboutRectTop + cachedAboutHeight;
 
         // Check if `#about` section has started entering the viewport
-        if (aboutRect.top < viewportHeight && aboutRect.bottom > 0) {
+        if (aboutRectTop < viewportHeight && aboutRectBottom > 0) {
             stickyContainer.style.visibility = 'visible';
             stickyContainer.style.opacity = '1';
             stickyContainer.style.pointerEvents = 'none';
 
             // Calculate percentage entered (0 to 1)
-            const percentEntered = Math.max(0, Math.min(1, (viewportHeight - aboutRect.top) / viewportHeight));
+            const percentEntered = Math.max(0, Math.min(1, (viewportHeight - aboutRectTop) / viewportHeight));
 
             if (percentEntered >= 0.70) {
                 // Canvas outro triggers at 70% scrolled up
@@ -462,11 +541,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Push up text Phase 5 when hit by the top of #about section
             if (textPhase5) {
-                const textHeight = textPhase5.offsetHeight;
+                const textHeight = cachedTextPhase5Height;
                 const naturalBottom = (viewportHeight + textHeight) / 2;
 
-                if (aboutRect.top < naturalBottom) {
-                    const translateY = aboutRect.top - naturalBottom;
+                if (aboutRectTop < naturalBottom) {
+                    const translateY = aboutRectTop - naturalBottom;
                     textPhase5.classList.add('scrolling-push');
                     textPhase5.style.setProperty('--push-y', `${translateY}px`);
                 } else {
@@ -474,7 +553,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     textPhase5.style.removeProperty('--push-y');
                 }
             }
-        } else if (aboutRect.bottom <= 0) {
+        } else if (aboutRectBottom <= 0) {
             // Completely scrolled past, hide completely
             stickyContainer.style.visibility = 'hidden';
             stickyContainer.style.opacity = '0';
@@ -502,14 +581,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Dynamic Navbar Scroll Handler
     const nav = document.getElementById('nav');
-    const scrollContainer = document.getElementById('scroll-container');
 
     function updateNavbar() {
         let scrollThreshold;
         if (isMobile) {
             scrollThreshold = 50;
         } else {
-            scrollThreshold = scrollContainer.scrollHeight - window.innerHeight - 50;
+            scrollThreshold = cachedScrollHeight - window.innerHeight - 50;
         }
         if (window.scrollY > scrollThreshold) {
             nav.classList.add('scrolled');
@@ -530,13 +608,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isMouseOverAbout) return; // Ignore scroll-based positioning if mouse hover is active
         if (!aboutSection || !bokeh1 || !bokeh2 || !bokeh3) return;
 
-        const rect = aboutSection.getBoundingClientRect();
         const viewportHeight = window.innerHeight;
+        const scrollY = window.scrollY;
+
+        const aboutRectTop = cachedAboutTop - scrollY;
+        const aboutRectBottom = aboutRectTop + cachedAboutHeight;
 
         // When #about is visible in the viewport, translate bokeh lights based on scroll progress
-        if (rect.top < viewportHeight && rect.bottom > 0) {
-            const enterPoint = rect.top - viewportHeight;
-            const scrollDistance = rect.height + viewportHeight;
+        if (aboutRectTop < viewportHeight && aboutRectBottom > 0) {
+            const enterPoint = aboutRectTop - viewportHeight;
+            const scrollDistance = cachedAboutHeight + viewportHeight;
             const progress = Math.max(0, Math.min(1, -enterPoint / (scrollDistance || 1)));
 
             // Map scroll progress to custom horizontal and vertical coordinates
@@ -558,9 +639,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (aboutContent && bokeh1 && bokeh2 && bokeh3) {
         aboutContent.addEventListener('mousemove', (e) => {
             isMouseOverAbout = true;
-            const rect = aboutContent.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const viewportLeft = cachedAboutContentLeft - window.scrollX;
+            const viewportTop = cachedAboutContentTop - window.scrollY;
+            const x = e.clientX - viewportLeft;
+            const y = e.clientY - viewportTop;
 
             // Centering offset calculation for each light size (feathered offsets for visual depth)
             const target1X = x - 150;
@@ -594,13 +676,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isMouseOverAboutMe) return; // Ignore scroll-based positioning if mouse hover is active
         if (!aboutMeSection || !bokehMe1 || !bokehMe2 || !bokehMe3) return;
 
-        const rect = aboutMeSection.getBoundingClientRect();
         const viewportHeight = window.innerHeight;
+        const scrollY = window.scrollY;
+
+        const aboutMeRectTop = cachedAboutMeTop - scrollY;
+        const aboutMeRectBottom = aboutMeRectTop + cachedAboutMeHeight;
 
         // When #about-me is visible in the viewport, translate bokeh lights based on scroll progress
-        if (rect.top < viewportHeight && rect.bottom > 0) {
-            const enterPoint = rect.top - viewportHeight;
-            const scrollDistance = rect.height + viewportHeight;
+        if (aboutMeRectTop < viewportHeight && aboutMeRectBottom > 0) {
+            const enterPoint = aboutMeRectTop - viewportHeight;
+            const scrollDistance = cachedAboutMeHeight + viewportHeight;
             const progress = Math.max(0, Math.min(1, -enterPoint / (scrollDistance || 1)));
 
             // Map scroll progress to custom horizontal and vertical coordinates
@@ -622,9 +707,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (aboutMeContent && bokehMe1 && bokehMe2 && bokehMe3) {
         aboutMeContent.addEventListener('mousemove', (e) => {
             isMouseOverAboutMe = true;
-            const rect = aboutMeContent.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const viewportLeft = cachedAboutMeContentLeft - window.scrollX;
+            const viewportTop = cachedAboutMeContentTop - window.scrollY;
+            const x = e.clientX - viewportLeft;
+            const y = e.clientY - viewportTop;
 
             const target1X = x - 150;
             const target1Y = y - 150;
