@@ -59,7 +59,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const canvas = document.getElementById('animation-canvas');
     const ctx = canvas.getContext('2d');
-    const mobileVideo = document.getElementById('mobile-scroll-video');
     const preloader = document.getElementById('preloader');
     const loaderBar = document.querySelector('.loader-bar');
     const loaderText = document.querySelector('.loader-text');
@@ -98,16 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Preload critical images first, then background load the rest
     function preloadImages() {
-        const activeMobile = window.innerWidth < 768;
-        if (activeMobile) {
-            // Skip image preloading entirely on mobile viewports
-            isCriticalLoadDone = true;
-            onPreloadComplete();
-        } else {
-            // On desktop viewports, load critical frames
-            for (let i = 0; i < CRITICAL_FRAMES_COUNT; i++) {
-                loadFrame(i, true);
-            }
+        for (let i = 0; i < CRITICAL_FRAMES_COUNT; i++) {
+            loadFrame(i, true);
         }
     }
 
@@ -199,30 +190,11 @@ document.addEventListener('DOMContentLoaded', () => {
         targetScrollFraction = getScrollFraction();
         currentScrollFraction = targetScrollFraction;
 
-        // Initialize mobile video scrubbing
-        const activeMobile = window.innerWidth < 768;
-        if (activeMobile && mobileVideo) {
-            mobileVideo.load();
-            mobileVideo.pause();
-            
-            const setInitialTime = () => {
-                if (mobileVideo.duration) {
-                    mobileVideo.currentTime = currentScrollFraction * mobileVideo.duration;
-                }
-            };
-            
-            if (mobileVideo.readyState >= 1) {
-                setInitialTime();
-            } else {
-                mobileVideo.addEventListener('loadedmetadata', setInitialTime, { once: true });
-            }
-        } else {
-            const frameIndex = Math.min(
-                totalFrames - 1,
-                Math.floor(currentScrollFraction * totalFrames)
-            );
-            renderFrame(frameIndex);
-        }
+        const frameIndex = Math.min(
+            totalFrames - 1,
+            Math.floor(currentScrollFraction * totalFrames)
+        );
+        renderFrame(frameIndex);
 
         updateNavbar();
         updateBokehPosition();
@@ -241,17 +213,6 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('resize', () => {
             resizeCanvas();
             targetScrollFraction = getScrollFraction();
-
-            // Lazy load images if resizing to desktop
-            if (window.innerWidth >= 768 && !isCriticalLoadDone) {
-                isCriticalLoadDone = true;
-                // Preload all critical frames to initialize canvas
-                for (let i = 0; i < CRITICAL_FRAMES_COUNT; i++) {
-                    loadFrame(i, false);
-                }
-                loadRemainingFrames();
-            }
-
             startAnimationLoop();
         });
     }
@@ -345,22 +306,12 @@ document.addEventListener('DOMContentLoaded', () => {
             currentScrollFraction += diff * ease;
         }
 
-        // 1. Render active animation (Video scrubbing on mobile, canvas images on desktop)
-        const activeMobile = window.innerWidth < 768;
-        if (activeMobile && mobileVideo) {
-            if (mobileVideo.duration) {
-                const targetTime = currentScrollFraction * mobileVideo.duration;
-                if (Math.abs(mobileVideo.currentTime - targetTime) > 0.03) {
-                    mobileVideo.currentTime = targetTime;
-                }
-            }
-        } else {
-            const frameIndex = Math.min(
-                totalFrames - 1,
-                Math.floor(currentScrollFraction * totalFrames)
-            );
-            renderFrame(frameIndex);
-        }
+        // 1. Render active animation frame
+        const frameIndex = Math.min(
+            totalFrames - 1,
+            Math.floor(currentScrollFraction * totalFrames)
+        );
+        renderFrame(frameIndex);
 
         // 2. Control visibility of Text overlays
         updateTextOverlays(currentScrollFraction);
@@ -428,25 +379,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const percentEntered = Math.max(0, Math.min(1, (viewportHeight - aboutRect.top) / viewportHeight));
 
             if (percentEntered >= 0.70) {
-                // Canvas/Video outro triggers at 70% scrolled up
+                // Canvas outro triggers at 70% scrolled up
                 if (canvas) {
                     canvas.classList.add('no-blur');
                     const fadeProgress = (percentEntered - 0.7) / 0.3; // 0 to 1
                     canvas.style.opacity = String(1 - fadeProgress);
                 }
-                if (mobileVideo) {
-                    mobileVideo.classList.add('no-blur');
-                    const fadeProgress = (percentEntered - 0.7) / 0.3; // 0 to 1
-                    mobileVideo.style.opacity = String(1 - fadeProgress);
-                }
             } else {
                 if (canvas) {
                     canvas.classList.remove('no-blur');
                     canvas.style.opacity = '1';
-                }
-                if (mobileVideo) {
-                    mobileVideo.classList.remove('no-blur');
-                    mobileVideo.style.opacity = '1';
                 }
             }
 
@@ -469,7 +411,6 @@ document.addEventListener('DOMContentLoaded', () => {
             stickyContainer.style.visibility = 'hidden';
             stickyContainer.style.opacity = '0';
             if (canvas) canvas.style.opacity = '0';
-            if (mobileVideo) mobileVideo.style.opacity = '0';
             if (textPhase5) {
                 textPhase5.classList.remove('scrolling-push');
                 textPhase5.style.removeProperty('--push-y');
@@ -482,10 +423,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (canvas) {
                 canvas.style.opacity = '1';
                 canvas.classList.remove('no-blur');
-            }
-            if (mobileVideo) {
-                mobileVideo.style.opacity = '1';
-                mobileVideo.classList.remove('no-blur');
             }
             if (textPhase5) {
                 textPhase5.classList.remove('scrolling-push');
