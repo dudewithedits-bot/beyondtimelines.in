@@ -233,6 +233,7 @@ nav#nav.scrolled .nav-cta:hover {
 }
 
 .scroll-text-section.scrolling-push {
+    transform: translateY(var(--push-y, 0px)) !important;
     transition: opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1) !important;
 }
 

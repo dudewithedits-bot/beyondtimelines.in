@@ -67,8 +67,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const startFrame = 0;
     const endFrame = 190;
     const totalFrames = endFrame - startFrame + 1;
-    const images = [];
-    let loadedCount = 0;
+
+    // Progressive Loading Setup: Pre-allocate images array with nulls
+    const images = new Array(totalFrames).fill(null);
+    let criticalLoadedCount = 0;
+    const CRITICAL_FRAMES_COUNT = 15; // Fast start with first 15 frames (~1.5MB)
+    let isCriticalLoadDone = false;
+
+    // Smooth Scrolling LERP Easing variables
+    let currentScrollFraction = 0;
+    let targetScrollFraction = 0;
+    let isLoopRunning = false;
 
     // Define scroll ranges for each text overlay section (from 0 to 1)
     const textPhases = [
@@ -85,31 +94,89 @@ document.addEventListener('DOMContentLoaded', () => {
         return `SCROLL ANIMATION/teaser${frameNum}.jpg`;
     }
 
-    // Preload all images
+    // Preload critical images first, then background load the rest
     function preloadImages() {
-        for (let i = 0; i < totalFrames; i++) {
-            const img = new Image();
-            img.src = getFramePath(i);
-            img.onload = () => {
-                loadedCount++;
-                const progress = Math.round((loadedCount / totalFrames) * 100);
+        for (let i = 0; i < CRITICAL_FRAMES_COUNT; i++) {
+            loadFrame(i, true);
+        }
+    }
+
+    function loadFrame(index, isCritical = false) {
+        const img = new Image();
+        img.src = getFramePath(index);
+        img.onload = () => {
+            images[index] = img;
+            if (isCritical) {
+                criticalLoadedCount++;
+                const progress = Math.round((criticalLoadedCount / CRITICAL_FRAMES_COUNT) * 100);
                 loaderBar.style.width = `${progress}%`;
                 loaderText.textContent = `LOADING PORTFOLIO... ${progress}%`;
 
-                if (loadedCount === totalFrames) {
+                if (criticalLoadedCount === CRITICAL_FRAMES_COUNT && !isCriticalLoadDone) {
+                    isCriticalLoadDone = true;
                     onPreloadComplete();
+                    loadRemainingFrames();
                 }
-            };
-            img.onerror = () => {
-                console.error(`Failed to load frame: ${img.src}`);
-                // Continue load flow even if an image fails to prevent freeze
-                loadedCount++;
-                if (loadedCount === totalFrames) {
+            }
+        };
+        img.onerror = () => {
+            console.error(`Failed to load critical frame: ${index}`);
+            if (isCritical) {
+                criticalLoadedCount++;
+                if (criticalLoadedCount === CRITICAL_FRAMES_COUNT && !isCriticalLoadDone) {
+                    isCriticalLoadDone = true;
                     onPreloadComplete();
+                    loadRemainingFrames();
                 }
-            };
-            images.push(img);
+            }
+        };
+    }
+
+    function loadRemainingFrames() {
+        let currentIndex = CRITICAL_FRAMES_COUNT;
+
+        function loadNextChunk() {
+            const chunkSize = 5;
+            const end = Math.min(totalFrames, currentIndex + chunkSize);
+            for (let i = currentIndex; i < end; i++) {
+                const img = new Image();
+                img.src = getFramePath(i);
+                img.onload = ((idx, imageEl) => {
+                    return () => {
+                        images[idx] = imageEl;
+                    };
+                })(i, img);
+                img.onerror = ((idx) => {
+                    return () => {
+                        console.warn(`Failed to load background frame: ${idx}`);
+                    };
+                })(i);
+            }
+            currentIndex = end;
+            if (currentIndex < totalFrames) {
+                setTimeout(loadNextChunk, 50);
+            }
         }
+
+        loadNextChunk();
+    }
+
+    // Helper to find the nearest loaded frame
+    function getClosestLoadedImage(index) {
+        if (images[index] && images[index].complete) {
+            return images[index];
+        }
+        let step = 1;
+        while (index - step >= 0 || index + step < totalFrames) {
+            if (index - step >= 0 && images[index - step] && images[index - step].complete) {
+                return images[index - step];
+            }
+            if (index + step < totalFrames && images[index + step] && images[index + step].complete) {
+                return images[index + step];
+            }
+            step++;
+        }
+        return null;
     }
 
     function onPreloadComplete() {
@@ -118,7 +185,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Initial setup and draw
         resizeCanvas();
-        renderFrame(0);
+
+        targetScrollFraction = getScrollFraction();
+        currentScrollFraction = targetScrollFraction;
+
+        const frameIndex = Math.min(
+            totalFrames - 1,
+            Math.floor(currentScrollFraction * totalFrames)
+        );
+        renderFrame(frameIndex);
+
         updateNavbar();
         updateBokehPosition();
         updateAboutMeBokehPosition();
@@ -126,12 +202,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Bind scroll and resize events
         window.addEventListener('scroll', () => {
-            handleScroll();
+            targetScrollFraction = getScrollFraction();
+            startAnimationLoop();
             updateNavbar();
             updateBokehPosition();
             updateAboutMeBokehPosition();
         }, { passive: true });
-        window.addEventListener('resize', resizeCanvas);
+
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            targetScrollFraction = getScrollFraction();
+            startAnimationLoop();
+        });
     }
 
     // Handle canvas resizing to adapt dynamically to viewports while maintaining aspect ratio
@@ -143,17 +225,16 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.scale(dpr, dpr);
 
         // Redraw current frame
-        const scrollFraction = getScrollFraction();
         const frameIndex = Math.min(
             totalFrames - 1,
-            Math.floor(scrollFraction * totalFrames)
+            Math.floor(currentScrollFraction * totalFrames)
         );
         renderFrame(frameIndex);
     }
 
     // Draw the image onto canvas using cover/contain-like math
     function renderFrame(index) {
-        const img = images[index];
+        const img = getClosestLoadedImage(index);
         if (!img || !img.complete) return;
 
         const canvasWidth = window.innerWidth;
@@ -205,36 +286,47 @@ document.addEventListener('DOMContentLoaded', () => {
         return Math.max(0, Math.min(1, scrollTop / (scrollHeight || 1)));
     }
 
-    // High performance scroll coordinator utilizing RequestAnimationFrame
-    let ticking = false;
-    function handleScroll() {
-        if (!ticking) {
-            requestAnimationFrame(() => {
-                const scrollFraction = getScrollFraction();
+    // Eased animation loop control
+    function startAnimationLoop() {
+        if (!isLoopRunning) {
+            isLoopRunning = true;
+            requestAnimationFrame(animationTick);
+        }
+    }
 
-                // 1. Render active animation frame
-                const frameIndex = Math.min(
-                    totalFrames - 1,
-                    Math.floor(scrollFraction * totalFrames)
-                );
-                renderFrame(frameIndex);
+    function animationTick() {
+        const diff = targetScrollFraction - currentScrollFraction;
+        const ease = 0.15; // Smooth scroll responsiveness factor
 
-                // 2. Control visibility of Text overlays
-                updateTextOverlays(scrollFraction);
+        if (Math.abs(diff) < 0.0001) {
+            currentScrollFraction = targetScrollFraction;
+            isLoopRunning = false;
+        } else {
+            currentScrollFraction += diff * ease;
+        }
 
-                // 3. Update sticky-to-fixed hero transitions
-                updateHeroStickyTransition();
+        // 1. Render active animation frame
+        const frameIndex = Math.min(
+            totalFrames - 1,
+            Math.floor(currentScrollFraction * totalFrames)
+        );
+        renderFrame(frameIndex);
 
-                // 4. Hide scroll down indicator after scrolling down a bit
-                if (window.scrollY > 50) {
-                    scrollIndicator.classList.add('hidden');
-                } else {
-                    scrollIndicator.classList.remove('hidden');
-                }
+        // 2. Control visibility of Text overlays
+        updateTextOverlays(currentScrollFraction);
 
-                ticking = false;
-            });
-            ticking = true;
+        // 3. Update sticky-to-fixed hero transitions
+        updateHeroStickyTransition();
+
+        // 4. Hide scroll down indicator after scrolling down a bit
+        if (window.scrollY > 50) {
+            scrollIndicator.classList.add('hidden');
+        } else {
+            scrollIndicator.classList.remove('hidden');
+        }
+
+        if (isLoopRunning) {
+            requestAnimationFrame(animationTick);
         }
     }
 
