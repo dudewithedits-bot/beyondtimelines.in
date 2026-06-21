@@ -559,8 +559,48 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (modalIframe) {
                         modalIframe.style.display = 'block';
                         let embedUrl = videoSrc;
-                        if (embedUrl.includes('vimeo.com') && !embedUrl.includes('autoplay=')) {
-                            embedUrl += (embedUrl.includes('?') ? '&' : '?') + 'autoplay=1';
+                        if (embedUrl.includes('vimeo.com')) {
+                            // Convert watch/share URLs to player embed URLs
+                            if (!embedUrl.includes('player.vimeo.com')) {
+                                try {
+                                    const urlObj = new URL(embedUrl);
+                                    const pathSegments = urlObj.pathname.split('/').filter(s => s.length > 0);
+                                    if (pathSegments.length > 0) {
+                                        const videoId = pathSegments[0];
+                                        const hash = pathSegments[1] || '';
+                                        embedUrl = `https://player.vimeo.com/video/${videoId}`;
+                                        if (hash) {
+                                            embedUrl += `?h=${hash}`;
+                                        }
+                                    }
+                                } catch (e) {
+                                    console.error("Failed to parse Vimeo URL:", e);
+                                }
+                            }
+                            if (!embedUrl.includes('autoplay=')) {
+                                embedUrl += (embedUrl.includes('?') ? '&' : '?') + 'autoplay=1';
+                            }
+                        } else if (embedUrl.includes('youtube.com') || embedUrl.includes('youtu.be')) {
+                            if (!embedUrl.includes('youtube.com/embed/')) {
+                                try {
+                                    let videoId = '';
+                                    if (embedUrl.includes('youtu.be')) {
+                                        const urlObj = new URL(embedUrl);
+                                        videoId = urlObj.pathname.substring(1);
+                                    } else {
+                                        const urlObj = new URL(embedUrl);
+                                        videoId = urlObj.searchParams.get('v');
+                                    }
+                                    if (videoId) {
+                                        embedUrl = `https://www.youtube.com/embed/${videoId}`;
+                                    }
+                                } catch (e) {
+                                    console.error("Failed to parse YouTube URL:", e);
+                                }
+                            }
+                            if (!embedUrl.includes('autoplay=')) {
+                                embedUrl += (embedUrl.includes('?') ? '&' : '?') + 'autoplay=1';
+                            }
                         }
                         modalIframe.src = embedUrl;
                     }
