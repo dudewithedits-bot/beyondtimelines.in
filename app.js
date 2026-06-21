@@ -19,7 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const decoded = decodeURIComponent(currentSrc);
             const isLocalAPReel = decoded.includes('A&P WEDDING REEL.mp4');
             const isLocalBanner = decoded.includes('banner BHAWNA & ARCHIT WEDDING TEASER-.mp4');
-            if (isLocalAPReel || isLocalBanner) {
+            const isLocalTeaser = decoded.includes('teaser.mp4');
+            if (isLocalAPReel || isLocalBanner || isLocalTeaser) {
                 return; // Always load these locally (on localhost and when deployed to Vercel)
             }
             video.src = CONFIG.cdnBaseUrl + currentSrc;
@@ -203,8 +204,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (activeMobile && mobileVideo) {
             mobileVideo.load();
             mobileVideo.pause();
-            if (mobileVideo.duration) {
-                mobileVideo.currentTime = currentScrollFraction * mobileVideo.duration;
+            
+            const setInitialTime = () => {
+                if (mobileVideo.duration) {
+                    mobileVideo.currentTime = currentScrollFraction * mobileVideo.duration;
+                }
+            };
+            
+            if (mobileVideo.readyState >= 1) {
+                setInitialTime();
+            } else {
+                mobileVideo.addEventListener('loadedmetadata', setInitialTime, { once: true });
             }
         } else {
             const frameIndex = Math.min(
